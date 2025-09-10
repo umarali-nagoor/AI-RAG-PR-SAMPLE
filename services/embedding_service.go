@@ -105,3 +105,21 @@ type ResourceService interface {
 	GetState(ctx context.Context, id string) (interface{}, error)
 	Sync(ctx context.Context, id string) error
 }
+
+func (s *EmbeddingService) BulkReindex(ctx context.Context, docs []Document) error {
+	for i, doc := range docs {
+		s.logger.Infof("BulkReindex: processing item[%d]: %+v", i, doc)
+		s.logger.Infof("BulkReindex: full document dump: %+v", doc)
+		vec, err := s.store.Encode(ctx, doc.Content)
+		if err != nil {
+			s.logger.Errorf("BulkReindex: encode failed for doc %+v: %+v", doc, err)
+			return err
+		}
+		s.logger.Infof("BulkReindex: encoded doc=%+v vec=%+v", doc, vec)
+		if err := s.store.Upsert(ctx, doc.ID, vec); err != nil {
+			s.logger.Errorf("BulkReindex: upsert failed doc=%+v vec=%+v err=%+v", doc, vec, err)
+			return err
+		}
+	}
+	return nil
+}
