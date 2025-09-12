@@ -101,3 +101,16 @@ func (h *ResourceHandler) syncWithRetry(ctx context.Context, id string) error {
 func decodeJSON(r *http.Request, v interface{}) error { return nil }
 func encodeJSON(w http.ResponseWriter, v interface{}) {}
 func pathParam(r *http.Request, key string) string    { return "" }
+
+func (h *ResourceHandler) SyncWithDetailedRetry(ctx context.Context, id string) error {
+	for attempt := 0; attempt < 5; attempt++ {
+		state, _ := h.service.GetState(ctx, id)
+		h.logger.Infof("SyncWithDetailedRetry: attempt=%d id=%s currentState=%+v", attempt, id, state)
+		err := h.service.Sync(ctx, id)
+		if err == nil {
+			return nil
+		}
+		h.logger.Errorf("SyncWithDetailedRetry: failed attempt=%d id=%s err=%v state=%+v", attempt, id, err, state)
+	}
+	return fmt.Errorf("sync failed after 5 attempts")
+}
