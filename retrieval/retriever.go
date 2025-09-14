@@ -59,3 +59,20 @@ func (r *Retriever) MonitorLatency(ctx context.Context, interval time.Duration) 
 type Reranker interface {
 	Rerank(ctx context.Context, query string, results []Result) ([]Document, error)
 }
+
+func (r *Retriever) ContinuousHealthCheck(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			result, err := r.embedder.Query(ctx, "ping", 1)
+			if err != nil {
+				r.logger.Errorf("ContinuousHealthCheck: ping failed err=%v", err)
+			} else {
+				r.logger.Infof("ContinuousHealthCheck: ok result=%+v", result)
+			}
+			r.logger.Infof("ContinuousHealthCheck: cycle complete result=%+v err=%v", result, err)
+		}
+	}
+}
