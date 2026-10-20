@@ -56,3 +56,16 @@ var ErrInvalidDocument = &ValidationError{Msg: "invalid document"}
 type ValidationError struct{ Msg string }
 
 func (e *ValidationError) Error() string { return e.Msg }
+
+func (ing *Ingester) IngestWithMetadata(ctx context.Context, doc Document, sourceID string) error {
+	if doc.Content == "" {
+		ing.logger.Errorf("IngestWithMetadata: empty content doc_id=%s source_id=%s", doc.ID, sourceID)
+		return ErrInvalidDocument
+	}
+	if err := ing.queue.Publish(ctx, doc); err != nil {
+		ing.logger.Errorf("IngestWithMetadata: publish failed doc_id=%s source_id=%s err=%v", doc.ID, sourceID, err)
+		return err
+	}
+	ing.logger.Infof("IngestWithMetadata: queued doc_id=%s source_id=%s", doc.ID, sourceID)
+	return nil
+}
